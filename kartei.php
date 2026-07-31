@@ -349,7 +349,7 @@ document.getElementById("showBtn").addEventListener("click", () => {
     document.getElementById("answer-options").style.display = "flex";
 });
 
-document.getElementById("rightBtn").addEventListener("click", async () => {
+document.getElementById("rightBtn").addEventListener("click", () => {
     const id = currentCard.id;
     // Verschiebe Karte in der Logik
     if (stage1.some(c => c.id === id)) {
@@ -359,21 +359,25 @@ document.getElementById("rightBtn").addEventListener("click", async () => {
         stage2 = stage2.filter(c => c.id !== id);
         stage3.push(currentCard);
     }
-    await saveProgress();
+    // Sofort weiter zur nächsten Karte - nicht auf den Netzwerk-Roundtrip warten.
+    // Das Speichern läuft im Hintergrund; das entkoppelt gleichzeitig zwei
+    // schnell aufeinanderfolgende Klicks, da currentCard schon aktualisiert ist,
+    // bevor ein zweiter Klick überhaupt verarbeitet werden könnte.
     pickNextCard();
+    saveProgress().catch(err => console.error("Fortschritt konnte nicht gespeichert werden:", err));
 });
 
-document.getElementById("wrongBtn").addEventListener("click", async () => {
+document.getElementById("wrongBtn").addEventListener("click", () => {
     const id = currentCard.id;
     // Wenn in Stufe 2, zurück zu Stufe 1
     if (stage2.some(c => c.id === id)) {
         stage2 = stage2.filter(c => c.id !== id);
         stage1.push(currentCard);
     }
-    // Hinweis: Karte bleibt für diese Session aus der sessionQueue draußen, 
+    // Hinweis: Karte bleibt für diese Session aus der sessionQueue draußen,
     // kommt aber im nächsten Durchgang (wenn Queue leer) wieder in Stufe 1 dran.
-    await saveProgress();
     pickNextCard();
+    saveProgress().catch(err => console.error("Fortschritt konnte nicht gespeichert werden:", err));
 });
 
 document.getElementById("resetBtn").addEventListener("click", () => {
