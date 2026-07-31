@@ -7,16 +7,19 @@ einem konsolidierten Admin-Bereich zur Verwaltung der Vokabel-Dateien.
 
 | Datei | Zweck |
 |---|---|
-| `kartei.php` (= `index.php`, `kartei4.php`) | Hauptanwendung mit Google-Login |
-| `kartei-guest.php` | Gast-Modus ohne Login, bewusst ohne Zugriffsschutz |
+| `kartei.php` (= `index.php`, `kartei4.php`) | Hauptanwendung – Google-Login **oder** Gast-Modus, gleiche Features |
 | `admin.php` | Konsolidierter Admin-Bereich (Upload, Merge, Verwaltung, Konverter) |
 | `admin-doku.php` | Diese Dokumentation als HTML, im Admin-Bereich verlinkt |
 | `config.php` | Zugangsdaten/Einstellungen (siehe Abschnitt 3) |
 
-`kartei.php` und `kartei-guest.php` sind vom Konzept her unabhängig: Die
-Google-Login-Variante speichert Fortschritt pro eingeloggtem User, der
-Gast-Modus speichert ihn unter der festen Kennung `guest` – zwei Gäste am
-selben Server teilen sich also denselben Lernstand pro Datei.
+`kartei.php` bietet auf der Login-Seite zusätzlich zum Google-Button "Ohne
+Anmeldung fortfahren (Gast)". Beide Wege führen zur exakt gleichen
+Lernoberfläche (3-Stufen-System, Fortschritts-Abgleich, Reset). Unterschied:
+Google-Login speichert Fortschritt pro echter Google-Sub-ID, der Gast-Modus
+unter der festen, gemeinsamen Kennung `guest` – alle Gäste am selben Server
+teilen sich also bewusst denselben Lernstand pro Datei. Der Admin-Link
+erscheint nur bei echtem Login mit einer autorisierten Sub-ID, nie im
+Gast-Modus.
 
 ## 2. Benutzung (Lernmodus)
 
@@ -56,7 +59,7 @@ $debugMode = true;            // true = PHP-Fehler werden angezeigt (für Live-B
 ## 4. Dateistruktur
 
 ```
-kartei.php, kartei-guest.php, admin.php, admin-doku.php, config.php
+kartei.php, admin.php, admin-doku.php, config.php
 *.csv                  <- aktive Vokabel-Dateien (erscheinen im Dropdown)
 old-latein/            <- archivierte/abgelöste Latein-Einzelkapitel & Sammel-CSVs
 ITIL/                  <- themenfremde CSVs (nicht Latein-bezogen)
@@ -116,11 +119,28 @@ automatischer Redirect zu `kartei.php`.
   Dateinamen, die tatsächlich in `glob("*.csv")` bzw.
   `glob("storage/prog_*.json")` auftauchen – keine rohen Pfade aus dem
   Formular, um Path Traversal zu verhindern.
-- **`kartei-guest.php`** hat bewusst **keinen** dieser Schutzmechanismen –
-  das ist ein offener Modus ohne Hürden, entsprechend sollte dort auch
-  nichts Sensibles abgelegt werden.
+- **Gast-Modus** hat bewusst **keine** Login-Hürde – das ist Absicht (schneller
+  Zugang ohne Google-Konto), entsprechend teilen sich alle Gäste denselben
+  Lernstand und sollten dort nichts Sensibles ablegen.
 
-## 7. Entwicklung / Deployment
+## 7. CSV-Parser & Fehlerbenachrichtigung
+
+Der CSV-Parser in `kartei.php` ist ein echter (kleiner) CSV-Parser, kein
+simpler Split-by-Komma: quotierte Felder mit Kommas darin werden korrekt
+gelesen. Eine Zeile wird **übersprungen** (nicht abgebrochen), wenn:
+
+- die Quotierung kaputt ist (z. B. ein nicht geschlossenes `"`), oder
+- Begriff oder Definition nach dem Parsen leer sind.
+
+Beim Laden einer Datei mit übersprungenen Zeilen schickt das Frontend eine
+**gebündelte** Meldung (ein Request pro Ladevorgang, nicht pro Zeile) an
+`https://ntfy.p5k.eu/kids-todos` – mit Dateiname, Anzahl und bis zu 10
+Beispielen (Zeilennummer + Grund + Rohtext). Der Versand läuft serverseitig
+über `sendNtfyNotification()` in `kartei.php` (offener ntfy-Endpunkt, kein
+Auth nötig). Schlägt der Versand fehl, wird das nur in der Browser-Konsole
+geloggt – der Lernvorgang selbst wird dadurch nicht blockiert.
+
+## 8. Entwicklung / Deployment
 
 - Lokales Arbeitsverzeichnis ist ein eigenständiges Git-Repository
   (`git log` zeigt die Historie inkl. aller Sicherheits- und Bugfixes).

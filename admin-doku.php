@@ -53,12 +53,15 @@ if (!$isAdmin) {
         im Projektverzeichnis.</p>
         <table>
             <tr><th>Datei</th><th>Zweck</th></tr>
-            <tr><td><code>kartei.php</code></td><td>Hauptanwendung mit Google-Login (auch erreichbar als <code>index.php</code>, <code>kartei4.php</code>)</td></tr>
-            <tr><td><code>kartei-guest.php</code></td><td>Gast-Modus ohne Login, bewusst ohne Zugriffsschutz</td></tr>
+            <tr><td><code>kartei.php</code></td><td>Hauptanwendung – Google-Login <strong>oder</strong> Gast-Modus, gleiche Lernfunktionen (auch erreichbar als <code>index.php</code>, <code>kartei4.php</code>)</td></tr>
             <tr><td><code>admin.php</code></td><td>Diese Admin-Werkzeuge</td></tr>
             <tr><td><code>admin-doku.php</code></td><td>Diese Seite</td></tr>
             <tr><td><code>config.php</code></td><td>Zugangsdaten und Einstellungen</td></tr>
         </table>
+        <p>Auf der Login-Seite gibt es neben dem Google-Button auch "Ohne Anmeldung
+        fortfahren (Gast)". Beide führen zur gleichen Lernoberfläche; der Admin-Link
+        erscheint nur bei echtem Login mit einer autorisierten Sub-ID, nie im
+        Gast-Modus. Alle Gäste teilen sich bewusst einen gemeinsamen Lernstand pro Datei.</p>
     </div>
 
     <div class="card-panel">
@@ -123,6 +126,18 @@ $debugMode = true;             // true = PHP-Fehler sichtbar (im Live-Betrieb au
     </div>
 
     <div class="card-panel">
+        <h2>CSV-Fehler &amp; Benachrichtigung</h2>
+        <p>Kann eine Zeile beim Lernen nicht korrekt gelesen werden (kaputte Quotierung,
+        fehlender Begriff oder fehlende Definition), wird sie übersprungen statt die App
+        abstürzen zu lassen. Gibt es in einer Datei übersprungene Zeilen, schickt
+        <code>kartei.php</code> beim Laden <strong>eine</strong> gesammelte Meldung (Dateiname,
+        Anzahl, bis zu 10 Beispiele mit Zeilennummer und Grund) an
+        <code>https://ntfy.p5k.eu/kids-todos</code>. So bekommt man mit, wenn eine CSV
+        fehlerhafte Zeilen enthält, ohne dass die App bei jedem Lernstart wegen einer einzelnen
+        kaputten Zeile hakt.</p>
+    </div>
+
+    <div class="card-panel">
         <h2>Wo landen die Dateien?</h2>
         <table>
             <tr><th>Ort</th><th>Bedeutung</th></tr>
@@ -142,7 +157,7 @@ $debugMode = true;             // true = PHP-Fehler sichtbar (im Live-Betrieb au
             <tr><td><span class="badge">Login</span></td><td>Google-ID-Token wird serverseitig bei Google verifiziert (Signatur, Empfänger, Ablaufzeit) – kein selbstgebautes Token kann eine fremde Identität vortäuschen.</td></tr>
             <tr><td><span class="badge">CSRF</span></td><td>Jedes Formular in <code>admin.php</code> schickt ein Sitzungs-Token mit, das vor jeder Aktion geprüft wird.</td></tr>
             <tr><td><span class="badge">Whitelist</span></td><td>Umbenennen/Löschen/Zusammenführen akzeptieren nur Dateinamen, die tatsächlich im Verzeichnis vorhanden sind – keine beliebigen Pfade aus dem Formular.</td></tr>
-            <tr><td><span class="badge">Gast-Modus</span></td><td><code>kartei-guest.php</code> hat bewusst keinen dieser Schutzmechanismen – offener Modus ohne Hürden, entsprechend nichts Sensibles dort ablegen.</td></tr>
+            <tr><td><span class="badge">Gast-Modus</span></td><td>Bewusst ohne Login-Hürde – schnell nutzbar, aber ohne echte Identität, daher teilen sich alle Gäste einen gemeinsamen Lernstand pro Datei.</td></tr>
         </table>
     </div>
 </div>

@@ -47,6 +47,32 @@ function verifyGoogleIdToken($idToken, $expectedAud) {
     return $payload;
 }
 
+// Schickt eine Textnachricht an einen ntfy-Topic (offener Endpunkt, kein Auth nötig).
+function sendNtfyNotification($message, $title) {
+    $url = 'https://ntfy.p5k.eu/kids-todos';
+    $headers = ['Title: ' . $title, 'Content-Type: text/plain; charset=utf-8'];
+    if (function_exists('curl_init')) {
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => $message,
+            CURLOPT_HTTPHEADER => $headers,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 5,
+        ]);
+        curl_exec($ch);
+        curl_close($ch);
+    } elseif (ini_get('allow_url_fopen')) {
+        $context = stream_context_create(['http' => [
+            'method' => 'POST',
+            'header' => implode("\r\n", $headers),
+            'content' => $message,
+            'timeout' => 5,
+        ]]);
+        @file_get_contents($url, false, $context);
+    }
+}
+
 $isAdmin = isset($_SESSION['user_id']) && in_array($_SESSION['user_id'], $authorizedUsers);
 
 // Upload/Merge/Datei-Verwaltung sind nach admin.php umgezogen (konsolidierter Admin-Bereich).
@@ -63,6 +89,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
         echo json_encode(["status" => "error", "message" => "Ungültiges Login-Token"]); exit;
     }
+    // Gast-Modus: kein echtes Google-Konto nötig, alle Gäste teilen sich
+    // bewusst einen gemeinsamen Lernstand pro Datei (feste Kennung "guest").
+    if ($_POST['action'] === 'guestLogin') {
+        header('Content-Type: application/json');
+        $_SESSION['guest_mode'] = true;
+        echo json_encode(["status" => "success"]); exit;
+    }
     if ($_POST['action'] === 'load') {
         header('Content-Type: application/json');
         $csvFile = $_POST['csvFile'] ?? '';
@@ -76,21 +109,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 }
 
-// --- SERVER LOGIK: SAVE ---
+// --- SERVER LOGIK: SAVE / FEHLERMELDUNG (JSON-Body) ---
 $jsonInput = json_decode(file_get_contents('php://input'), true);
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($jsonInput['action']) && $jsonInput['action'] === 'save') {
     header('Content-Type: application/json');
-    if (isset($_SESSION['user_id'])) {
-        $filename = $storageDir . DIRECTORY_SEPARATOR . 'prog_' . $_SESSION['user_id'] . '_' . md5($jsonInput['csvFile']) . '.json';
+    if (isset($_SESSION['user_id']) || !empty($_SESSION['guest_mode'])) {
+        $userKey = $_SESSION['user_id'] ?? 'guest';
+        $filename = $storageDir . DIRECTORY_SEPARATOR . 'prog_' . $userKey . '_' . md5($jsonInput['csvFile']) . '.json';
         file_put_contents($filename, json_encode($jsonInput['progress']));
         echo json_encode(["status" => "saved"]);
     }
     exit;
 }
 
+// Sammelt CSV-Parse-Fehler ein, die das Frontend beim Einlesen einer Datei
+// entdeckt hat, und meldet sie gebündelt (eine Nachricht pro Ladevorgang) an ntfy.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($jsonInput['action']) && $jsonInput['action'] === 'reportParseError') {
+    header('Content-Type: application/json');
+    $csvFile = $jsonInput['csvFile'] ?? 'unbekannt';
+    $errors = is_array($jsonInput['errors'] ?? null) ? $jsonInput['errors'] : [];
+    if ($errors) {
+        $lines = array_map(function ($e) {
+            $line = $e['line'] ?? '?';
+            $reason = $e['reason'] ?? 'unbekannter Fehler';
+            $raw = mb_substr((string)($e['raw'] ?? ''), 0, 120);
+            return "Zeile $line: $reason -> $raw";
+        }, array_slice($errors, 0, 10));
+        $body = "Datei: $csvFile\n" . count($errors) . " fehlerhafte Zeile(n) übersprungen:\n" . implode("\n", $lines);
+        if (count($errors) > 10) {
+            $body .= "\n… und " . (count($errors) - 10) . " weitere.";
+        }
+        sendNtfyNotification($body, "Lernkartei CSV-Fehler: $csvFile");
+    }
+    echo json_encode(["status" => "reported"]);
+    exit;
+}
+
 if (isset($_GET['logout'])) { session_destroy(); header("Location: kartei.php"); exit; }
 $csvFiles = glob("*.csv");
-$isLoggedIn = isset($_SESSION['user_id']);
+$isGuest = !isset($_SESSION['user_id']) && !empty($_SESSION['guest_mode']);
+$isLoggedIn = isset($_SESSION['user_id']) || $isGuest;
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -126,13 +184,14 @@ $isLoggedIn = isset($_SESSION['user_id']);
     <h2>Lernkartei</h2>
     <div id="g_id_onload" data-client_id="<?= $googleClientId ?>" data-callback="handleCredentialResponse"></div>
     <div class="g_id_signin" data-type="standard"></div>
+    <button id="guestBtn" style="margin-top:20px; max-width:280px;">Ohne Anmeldung fortfahren (Gast)</button>
 </div>
 <?php endif; ?>
 
 <div class="container" style="display: <?= $isLoggedIn ? 'block' : 'none' ?>;">
     <div class="user-bar">
         <?php if ($isAdmin): ?><a href="admin.php" class="admin-link">🛠 Admin</a><?php endif; ?>
-        👤 <?= htmlspecialchars($_SESSION['user_name'] ?? '') ?> <a href="?logout=1" class="logout-link">Logout</a>
+        👤 <?= $isGuest ? 'Gast' : htmlspecialchars($_SESSION['user_name'] ?? '') ?> <a href="?logout=1" class="logout-link">Logout</a>
     </div>
 
     <h1>Lernkartei</h1>
@@ -205,6 +264,13 @@ function handleCredentialResponse(response) {
         });
 }
 
+document.getElementById("guestBtn").addEventListener("click", async () => {
+    const body = new FormData();
+    body.append('action', 'guestLogin');
+    await fetch('', { method: 'POST', body });
+    location.reload();
+});
+
 async function saveProgress() {
     const payload = { 
         action: 'save', 
@@ -214,13 +280,68 @@ async function saveProgress() {
     await fetch('', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
 }
 
-function parseCSV(text) {
-    const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
+// Zerlegt eine einzelne CSV-Zeile in Felder (quotiert oder unquotiert,
+// Kommas innerhalb von Anführungszeichen sind erlaubt). Gibt null zurück,
+// wenn die Zeile syntaktisch kaputt ist (z.B. nicht geschlossenes Zitat).
+function parseCsvLine(line) {
+    const fields = [];
+    let i = 0;
+    const n = line.length;
+    for (;;) {
+        while (line[i] === ' ' || line[i] === '\t') i++;
+        if (line[i] === '"') {
+            i++;
+            let field = '';
+            while (i < n && line[i] !== '"') { field += line[i]; i++; }
+            if (line[i] !== '"') return null; // nicht geschlossenes Anführungszeichen
+            i++;
+            fields.push(field.trim());
+        } else {
+            const start = i;
+            while (i < n && line[i] !== ',') i++;
+            fields.push(line.slice(start, i).trim());
+        }
+        while (line[i] === ' ' || line[i] === '\t') i++;
+        if (i >= n) break;
+        if (line[i] !== ',') return null; // unerwartetes Zeichen nach einem Feld
+        i++;
+    }
+    return fields;
+}
+
+// Meldet gesammelte Parse-Fehler einer Datei in EINER Nachricht an ntfy,
+// statt bei jeder kaputten Zeile einzeln zu spammen.
+function reportParseErrors(csvFile, errors) {
+    fetch('', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reportParseError', csvFile, errors })
+    }).catch(err => console.error('Fehlermeldung konnte nicht gesendet werden:', err));
+}
+
+function parseCSV(text, csvFile) {
+    const lines = text.split(/\r?\n/);
     const idCounts = new Map();
-    return lines.slice(1).map(line => {
-        const f = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || [];
-        const c = f.map(s => s.replace(/^"|"$/g, '').trim());
-        const cat = c[0] || '', term = c[1] || '', def = c[2] || '';
+    const errors = [];
+    const cards = [];
+
+    for (let i = 1; i < lines.length; i++) {
+        const raw = lines[i];
+        if (raw.trim() === '') continue;
+        const lineNr = i + 1; // menschenlesbar, Zeile 1 = Header
+
+        const fields = parseCsvLine(raw);
+        if (!fields) {
+            errors.push({ line: lineNr, reason: 'Fehlerhafte CSV-Syntax (z.B. nicht geschlossenes Anführungszeichen)', raw });
+            continue;
+        }
+
+        const cat = fields[0] || '', term = fields[1] || '', def = fields[2] || '';
+        if (!term || !def) {
+            errors.push({ line: lineNr, reason: !term ? 'Begriff fehlt' : 'Definition fehlt', raw });
+            continue;
+        }
+
         // ID aus Kategorie+Begriff+Definition, damit gleicher Begriff in
         // unterschiedlichen Kapiteln nicht kollidiert. Echte Dubletten
         // (identische Kategorie+Begriff+Definition) bekommen zusätzlich
@@ -229,8 +350,13 @@ function parseCSV(text) {
         const n = idCounts.get(baseId) || 0;
         idCounts.set(baseId, n + 1);
         const id = n === 0 ? baseId : (baseId + '_' + n);
-        return { id, cat, term, def, src: c[3]||'' };
-    }).filter(c => c.term !== "");
+        cards.push({ id, cat, term, def, src: fields[3] || '' });
+    }
+
+    if (errors.length > 0) {
+        reportParseErrors(csvFile, errors);
+    }
+    return cards;
 }
 
 // Gleicht den gespeicherten Lernfortschritt mit den aktuell aus der CSV
@@ -280,7 +406,7 @@ document.getElementById("loadBtn").addEventListener("click", async () => {
     if (!csvFilename) return;
 
     const text = await fetch(csvFilename).then(r => r.text());
-    allCards = parseCSV(text);
+    allCards = parseCSV(text, csvFilename);
 
     const body = new FormData();
     body.append('action', 'load');
