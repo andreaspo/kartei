@@ -147,8 +147,8 @@ $isLoggedIn = isset($_SESSION['user_id']);
         </select>
         <label>Abfragerichtung:</label>
         <select id="directionSelect">
-            <option value="begriff">Begriff → Definition</option>
-            <option value="definition">Definition → Begriff</option>
+            <option value="begriff">Begriff → Definition (z.B. LAT → DE)</option>
+            <option value="definition">Definition → Begriff (z.B. DE → LAT)</option>
         </select>
         <button id="loadBtn">Lernen starten</button>
     </div>
