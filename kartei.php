@@ -48,47 +48,8 @@ function verifyGoogleIdToken($idToken, $expectedAud) {
 }
 
 $isAdmin = isset($_SESSION['user_id']) && in_array($_SESSION['user_id'], $authorizedUsers);
-$uploadMsg = "";
 
-// --- SERVER LOGIK: UPLOAD ---
-if ($isAdmin && isset($_FILES['csvUpload'])) {
-    $file = $_FILES['csvUpload'];
-    $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-    $dest = __DIR__ . DIRECTORY_SEPARATOR . basename($file['name']);
-    
-    if ($ext !== 'csv') {
-        $uploadMsg = "❌ Nur CSV erlaubt.";
-    } elseif (file_exists($dest)) {
-        $uploadMsg = "⚠️ Datei existiert bereits.";
-    } else {
-        if (move_uploaded_file($file['tmp_name'], $dest)) {
-            $uploadMsg = "✅ Upload erfolgreich!";
-        }
-    }
-}
-
-// --- SERVER LOGIK: MERGE ---
-if ($isAdmin && isset($_POST['action']) && $_POST['action'] === 'mergeFiles') {
-    // Nur Dateien erlauben, die tatsächlich als .csv im Projektverzeichnis liegen -
-    // verhindert Path Traversal / Schreiben beliebiger (z.B. .php-)Dateien.
-    $allowedCsvFiles = glob("*.csv");
-    $source = basename($_POST['sourceFile'] ?? '');
-    $target = basename($_POST['targetFile'] ?? '');
-    if ($source && $target && $source !== $target
-        && in_array($source, $allowedCsvFiles, true)
-        && in_array($target, $allowedCsvFiles, true)) {
-        $sourceContent = file($source, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-        $targetContent = file($target, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-        $header = $targetContent[0];
-        $existingLines = array_map('trim', array_slice($targetContent, 1));
-        $newLines = array_map('trim', array_slice($sourceContent, 1));
-        $combined = array_unique(array_merge($existingLines, $newLines));
-        file_put_contents($target, $header . "\n" . implode("\n", $combined));
-        $uploadMsg = "✅ Kombiniert in: $target";
-    } else {
-        $uploadMsg = "❌ Ungültige Dateiauswahl.";
-    }
-}
+// Upload/Merge/Datei-Verwaltung sind nach admin.php umgezogen (konsolidierter Admin-Bereich).
 
 // --- SERVER LOGIK: AJAX (Login / Load) ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
@@ -146,7 +107,7 @@ $isLoggedIn = isset($_SESSION['user_id']);
         h1 { color: white; text-align: center; margin-bottom: 0.5rem; }
         .user-bar { text-align: right; color: white; font-size: 0.85rem; margin-bottom: 10px; background: rgba(255,255,255,0.15); padding: 8px 15px; border-radius: 20px; }
         .logout-link { color: #ffbcbc; text-decoration: none; margin-left: 10px; font-weight: bold; }
-        .admin-drawer { display: none; background: white; padding: 1rem; border-radius: 12px; margin-bottom: 1rem; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .admin-link { color: white; text-decoration: underline; margin-right: 15px; }
         .card-panel { background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); margin-bottom: 1rem; }
         select, button, input { font-size: 0.9rem; padding: 0.6rem; border-radius: 8px; border: 2px solid #e2e8f0; width: 100%; margin-bottom: 0.5rem; }
         button { background: #667eea; color: white; border: none; font-weight: bold; cursor: pointer; transition: opacity 0.2s; }
@@ -170,20 +131,9 @@ $isLoggedIn = isset($_SESSION['user_id']);
 
 <div class="container" style="display: <?= $isLoggedIn ? 'block' : 'none' ?>;">
     <div class="user-bar">
-        <?php if ($isAdmin): ?><span style="cursor:pointer;text-decoration:underline;margin-right:15px;" onclick="document.getElementById('adminDrawer').style.display='block'">🛠 Admin</span><?php endif; ?>
+        <?php if ($isAdmin): ?><a href="admin.php" class="admin-link">🛠 Admin</a><?php endif; ?>
         👤 <?= htmlspecialchars($_SESSION['user_name'] ?? '') ?> <a href="?logout=1" class="logout-link">Logout</a>
     </div>
-
-    <?php if ($isAdmin): ?>
-    <div id="adminDrawer" class="admin-drawer">
-        <strong>Datei-Management</strong> <button onclick="this.parentElement.style.display='none'" style="width:auto; float:right; padding:2px 10px;">X</button>
-        <p><?= $uploadMsg ?></p>
-        <form method="post" enctype="multipart/form-data">
-            <input type="file" name="csvUpload" accept=".csv" required>
-            <button type="submit">Upload</button>
-        </form>
-    </div>
-    <?php endif; ?>
 
     <h1>Lernkartei</h1>
     
