@@ -258,7 +258,7 @@ usort($progressRows, function($a, $b) {
         .container { max-width: 900px; margin: 0 auto; padding: 0.5rem; }
         h1 { color: white; text-align: center; margin-bottom: 0.5rem; }
         .top-bar { text-align: right; margin-bottom: 10px; }
-        .top-bar a { color: white; background: rgba(255,255,255,0.15); padding: 8px 15px; border-radius: 20px; text-decoration: none; font-size: 0.85rem; }
+        .top-bar a { color: white; background: rgba(255,255,255,0.15); padding: 8px 15px; border-radius: 20px; text-decoration: none; font-size: 0.85rem; margin-left: 8px; }
         .card-panel { background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); margin-bottom: 1.5rem; }
         .card-panel h2 { margin-top: 0; font-size: 1.1rem; }
         select, button, input, textarea { font-size: 0.9rem; padding: 0.6rem; border-radius: 8px; border: 2px solid #e2e8f0; width: 100%; margin-bottom: 0.5rem; font-family: inherit; }
@@ -277,7 +277,7 @@ usort($progressRows, function($a, $b) {
 </head>
 <body>
 <div class="container">
-    <div class="top-bar"><a href="kartei.php">⬅ Zurück zur Lernkartei</a></div>
+    <div class="top-bar"><a href="admin-doku.php">📖 Doku</a> <a href="kartei.php">⬅ Zurück zur Lernkartei</a></div>
     <h1>🛠 Admin-Bereich</h1>
 
     <?php if ($message): ?>
