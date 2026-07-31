@@ -264,12 +264,19 @@ function handleCredentialResponse(response) {
         });
 }
 
-document.getElementById("guestBtn").addEventListener("click", async () => {
-    const body = new FormData();
-    body.append('action', 'guestLogin');
-    await fetch('', { method: 'POST', body });
-    location.reload();
-});
+// guestBtn existiert nur im Login-Overlay (nicht gerendert, wenn schon
+// eingeloggt) - ohne diese Prüfung würde das Script bei eingeloggten Usern
+// hier mit einer Exception abbrechen und alle folgenden Event-Listener
+// (loadBtn, showBtn, rightBtn, ...) nie registrieren.
+const guestBtn = document.getElementById("guestBtn");
+if (guestBtn) {
+    guestBtn.addEventListener("click", async () => {
+        const body = new FormData();
+        body.append('action', 'guestLogin');
+        await fetch('', { method: 'POST', body });
+        location.reload();
+    });
+}
 
 async function saveProgress() {
     const payload = { 
