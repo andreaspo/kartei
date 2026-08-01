@@ -1,0 +1,13 @@
+<?php
+// Deine Google Client ID
+$googleClientId = "DEINE-GOOGLE-CLIENT-ID.apps.googleusercontent.com";
+
+// Liste der Google-Sub-IDs mit Upload-Rechten
+$authorizedUsers = [
+	"GOOGLE-SUB-ID-1",	#name1
+	"GOOGLE-SUB-ID-2" 	#name2
+
+];
+
+// DEBUG MODUS: true = an, false = aus
+$debugMode = true;
