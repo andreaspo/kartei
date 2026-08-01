@@ -11,6 +11,7 @@ einem konsolidierten Admin-Bereich zur Verwaltung der Vokabel-Dateien.
 | `admin.php` | Konsolidierter Admin-Bereich (Upload, Merge, Verwaltung, Konverter) |
 | `admin-doku.php` | Diese Dokumentation als HTML, im Admin-Bereich verlinkt |
 | `config.php` | Zugangsdaten/Einstellungen (siehe Abschnitt 3) |
+| `convert_excel_vokabeln.py` | Excel-Vocabularium → Lernkartei-CSVs (siehe Abschnitt 8) |
 
 `kartei.php` bietet auf der Login-Seite zusätzlich zum Google-Button "Ohne
 Anmeldung fortfahren (Gast)". Beide Wege führen zur exakt gleichen
@@ -140,7 +141,30 @@ Beispielen (Zeilennummer + Grund + Rohtext). Der Versand läuft serverseitig
 Auth nötig). Schlägt der Versand fehl, wird das nur in der Browser-Konsole
 geloggt – der Lernvorgang selbst wird dadurch nicht blockiert.
 
-## 8. Entwicklung / Deployment
+## 8. Excel-Import (`convert_excel_vokabeln.py`)
+
+Wandelt ein Vocabularium-Excel (Spalten Lektion, Wortart, Dekl./Konj., Kategorie,
+Lateinisch, Deutsch) in zwei Lernkartei-CSVs um, aufgeteilt nach Schuljahr. Für
+`latein_Gym3.csv`/`latein_Gym4.csv` diente das offizielle Vocabularium zu
+"Medias In Res! L6" (3./4. Schuljahr) als Quelle, herunterladbar unter
+<https://www.scook.at/produkt/c545cdd4-4cbc-41cf-b839-c3234acd7207?key=med030&section=Materialien>.
+Die Original-Excel selbst liegt **nicht** im Git-Repo (Verlagsmaterial, siehe
+`.gitignore: *.xlsx`).
+
+- Läuft lokal per `python3 convert_excel_vokabeln.py` (benötigt `openpyxl`).
+- Wortart/Deklination bzw. Konjugation werden direkt an den Begriff angehängt,
+  z. B. `catta,-ae f. {Substantiv (a-Dekl. f.)}` — Quelle-Feld ist für alle
+  Zeilen einheitlich der Buchtitel.
+- Kapitelnummer entscheidet über die Zieldatei: `KAPITEL_SPLIT` (Standard 14)
+  trennt 3. von 4. Schuljahr. Vokabeln mit Mehrfach-Lektion (z. B. `"4;8"`)
+  werden nur der ersten genannten Lektion zugeordnet.
+- **Für ein neues Buch oder künftige Import-Fehler**: den
+  `KONFIGURATION`-Block am Anfang des Skripts anpassen (Eingabedatei,
+  Sheet-Name, Buchtitel, Kapitel-Split, Ausgabedateien, Spaltenreihenfolge).
+  Ändert sich der Excel-Aufbau grundlegender, ggf. zusätzlich
+  `build_begriff()`/`kapitel_aus_lektion()` anpassen.
+
+## 9. Entwicklung / Deployment
 
 - Lokales Arbeitsverzeichnis ist ein eigenständiges Git-Repository
   (`git log` zeigt die Historie inkl. aller Sicherheits- und Bugfixes).

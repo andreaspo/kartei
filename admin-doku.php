@@ -184,6 +184,24 @@ $debugMode = true;             // true = PHP-Fehler sichtbar (im Live-Betrieb au
     </div>
 
     <div class="card-panel">
+        <h2>Excel-Import (<code>convert_excel_vokabeln.py</code>)</h2>
+        <p>Wandelt ein Vocabularium-Excel (Spalten Lektion, Wortart, Dekl./Konj., Kategorie,
+        Lateinisch, Deutsch) in zwei Lernkartei-CSVs um, aufgeteilt nach Schuljahr. Für
+        <code>latein_Gym3.csv</code>/<code>latein_Gym4.csv</code> diente das offizielle
+        Vocabularium zu "Medias In Res! L6" (3./4. Schuljahr) als Quelle, herunterladbar unter
+        <a href="https://www.scook.at/produkt/c545cdd4-4cbc-41cf-b839-c3234acd7207?key=med030&amp;section=Materialien" target="_blank" rel="noopener">scook.at</a>.
+        Die Original-Excel selbst liegt <strong>nicht</strong> im Git-Repo (Verlagsmaterial).</p>
+        <p>Läuft lokal per <code>python3 convert_excel_vokabeln.py</code> (benötigt
+        <code>openpyxl</code>). Wortart/Deklination bzw. Konjugation werden direkt an den
+        Begriff angehängt, z. B. <code>catta,-ae f. {Substantiv (a-Dekl. f.)}</code> – das
+        Quelle-Feld ist für alle Zeilen einheitlich der Buchtitel. Die Kapitelnummer entscheidet
+        über die Zieldatei (Standard-Trennung nach Kapitel 14).</p>
+        <p><strong>Für ein neues Buch oder künftige Import-Fehler</strong>: den
+        <code>KONFIGURATION</code>-Block am Anfang des Skripts anpassen (Eingabedatei,
+        Sheet-Name, Buchtitel, Kapitel-Split, Ausgabedateien, Spaltenreihenfolge).</p>
+    </div>
+
+    <div class="card-panel">
         <h2>Sicherheit auf einen Blick</h2>
         <table>
             <tr><td><span class="badge">Login</span></td><td>Google-ID-Token wird serverseitig bei Google verifiziert (Signatur, Empfänger, Ablaufzeit) – kein selbstgebautes Token kann eine fremde Identität vortäuschen.</td></tr>
