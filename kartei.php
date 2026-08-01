@@ -232,7 +232,8 @@ $isLoggedIn = isset($_SESSION['user_id']) || $isGuest;
             <div><span style="display:block; font-weight:bold; color:#667eea;" id="s2">0</span><small>Stufe 2</small></div>
             <div><span style="display:block; font-weight:bold; color:#667eea;" id="s3">0</span><small>Stufe 3 ✓</small></div>
         </div>
-        <button id="resetBtn" style="background:#e2e8f0; color:#4a5568; margin-top:15px;">Fortschritt zurücksetzen</button>
+        <button id="homeBtn" style="background:#e2e8f0; color:#4a5568; margin-top:15px;">🏠 Zur Dateiauswahl</button>
+        <button id="resetBtn" style="background:#e2e8f0; color:#4a5568; margin-top:10px;">Fortschritt zurücksetzen</button>
     </div>
 </div>
 
@@ -542,6 +543,10 @@ document.getElementById("wrongBtn").addEventListener("click", () => {
     // ein höheres Gewicht und kommt dadurch tendenziell schneller wieder dran.
     pickNextCard();
     saveProgress().catch(err => console.error("Fortschritt konnte nicht gespeichert werden:", err));
+});
+
+document.getElementById("homeBtn").addEventListener("click", () => {
+    location.reload();
 });
 
 document.getElementById("resetBtn").addEventListener("click", () => {
