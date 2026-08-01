@@ -414,7 +414,7 @@ document.getElementById("loadBtn").addEventListener("click", async () => {
     direction = document.getElementById("directionSelect").value;
     if (!csvFilename) return;
 
-    const text = await fetch(csvFilename).then(r => r.text());
+    const text = await fetch(csvFilename, { cache: "no-store" }).then(r => r.text());
     allCards = parseCSV(text, csvFilename);
 
     const body = new FormData();
