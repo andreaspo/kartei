@@ -1,11 +1,32 @@
+"""Konvertiert ein Vocabularium-Excel in Lernkartei-CSVs, aufgeteilt nach Schuljahr.
+
+Bei einem neuen Buch oder Import-Fehler: nur den KONFIGURATION-Block unten anpassen.
+Ändert sich der Spaltenaufbau des Excels grundlegend, ggf. auch build_begriff()/
+kapitel_aus_lektion() anpassen.
+"""
+
 import csv
 import re
 import openpyxl
 
-input_datei = '0514180101_0514190101_WM_199_Vocabularium_filterbar.xlsx'
-output_gym3 = 'latein_Gym3_neu.csv'
-output_gym4 = 'latein_Gym4.csv'
-quelle_buch = 'Medias In Res! L6'
+# ============================= KONFIGURATION =============================
+
+INPUT_DATEI = '0514180101_0514190101_WM_199_Vocabularium_filterbar.xlsx'
+SHEET_NAME = 'Vocabularium'
+
+# Wird für ALLE Einträge unverändert ins Quelle-Feld geschrieben.
+BUCH_QUELLE = 'Medias In Res! L6. 3-4'
+
+# Kapitelnummer <= SPLIT -> erste Ausgabedatei, > SPLIT -> zweite Ausgabedatei.
+KAPITEL_SPLIT = 14
+AUSGABE_1 = 'latein_Gym3.csv'       # Kapitel 0-14, 3. Schuljahr
+AUSGABE_2 = 'latein_Gym4.csv'       # Kapitel >14, 4. Schuljahr
+
+# Reihenfolge der Excel-Spalten (0-indiziert), Kopfzeile in Zeile 1.
+COL_LEKTION, COL_WORTART, COL_DEKLKONJ, COL_THEMA, COL_LATEINISCH, COL_DEUTSCH = range(6)
+
+# ============================================================================
+
 
 def clean_text(text):
     if text is None:
@@ -13,55 +34,51 @@ def clean_text(text):
     text = re.sub(r'\s+', ' ', str(text))
     return text.strip()
 
-def erste_lektion(wert):
+
+def kapitel_aus_lektion(wert):
     # Mehrfach-Lektionen wie "4;8" -> erste genannte Lektion verwenden
     text = str(wert).split(';')[0].strip()
     return int(text)
 
-def quelle_aus_wortart(wortart, deklkonj):
+
+def build_begriff(lateinisch, wortart, deklkonj):
+    lateinisch = clean_text(lateinisch)
     wortart = clean_text(wortart)
     deklkonj = clean_text(deklkonj)
-    if deklkonj:
-        return f"{wortart} ({deklkonj})"
-    return wortart
 
-wb = openpyxl.load_workbook(input_datei, data_only=True)
-ws = wb['Vocabularium']
+    if not wortart:
+        return lateinisch
+    info = f"{wortart} ({deklkonj})" if deklkonj else wortart
+    return f"{lateinisch} {{{info}}}"
 
-rows_gym3 = []
-rows_gym4 = []
 
-for row in ws.iter_rows(min_row=2, values_only=True):
-    lektion, wortart, deklkonj, _kategorie_thema, lateinisch, deutsch = row
-    if lateinisch is None or deutsch is None:
-        continue
+def konvertiere():
+    wb = openpyxl.load_workbook(INPUT_DATEI, data_only=True)
+    ws = wb[SHEET_NAME]
 
-    lat = clean_text(lateinisch)
-    deu = clean_text(deutsch)
-    if not lat or not deu:
-        continue
+    rows_1, rows_2 = [], []
 
-    kapitel_nr = erste_lektion(lektion)
-    kategorie = f"Kapitel {kapitel_nr}"
-    quelle = quelle_aus_wortart(wortart, deklkonj)
+    for row in ws.iter_rows(min_row=2, values_only=True):
+        lateinisch = clean_text(row[COL_LATEINISCH])
+        deutsch = clean_text(row[COL_DEUTSCH])
+        if not lateinisch or not deutsch:
+            continue
 
-    zeile = [kategorie, lat, deu, quelle]
-    if kapitel_nr <= 14:
-        rows_gym3.append(zeile)
-    else:
-        rows_gym4.append(zeile)
+        kapitel_nr = kapitel_aus_lektion(row[COL_LEKTION])
+        kategorie = f"Kapitel {kapitel_nr}"
+        begriff = build_begriff(lateinisch, row[COL_WORTART], row[COL_DEKLKONJ])
 
-header = ["Kategorie", "Begriff", "Definition", "Quelle"]
+        zeile = [kategorie, begriff, deutsch, BUCH_QUELLE]
+        (rows_1 if kapitel_nr <= KAPITEL_SPLIT else rows_2).append(zeile)
 
-with open(output_gym3, 'w', newline='', encoding='utf-8') as f_out:
-    writer = csv.writer(f_out, delimiter=',', quotechar='"', quoting=csv.QUOTE_ALL)
-    writer.writerow(header)
-    writer.writerows(rows_gym3)
+    header = ["Kategorie", "Begriff", "Definition", "Quelle"]
+    for pfad, rows in ((AUSGABE_1, rows_1), (AUSGABE_2, rows_2)):
+        with open(pfad, 'w', newline='', encoding='utf-8') as f_out:
+            writer = csv.writer(f_out, delimiter=',', quotechar='"', quoting=csv.QUOTE_ALL)
+            writer.writerow(header)
+            writer.writerows(rows)
+        print(f"Fertig! {len(rows)} Vokabeln -> {pfad}")
 
-with open(output_gym4, 'w', newline='', encoding='utf-8') as f_out:
-    writer = csv.writer(f_out, delimiter=',', quotechar='"', quoting=csv.QUOTE_ALL)
-    writer.writerow(header)
-    writer.writerows(rows_gym4)
 
-print(f"Fertig! {len(rows_gym3)} Vokabeln -> {output_gym3} (Kapitel 0-14, 3. Schuljahr)")
-print(f"Fertig! {len(rows_gym4)} Vokabeln -> {output_gym4} (Kapitel >14, 4. Schuljahr)")
+if __name__ == '__main__':
+    konvertiere()
