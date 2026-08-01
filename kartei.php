@@ -237,7 +237,7 @@ $isLoggedIn = isset($_SESSION['user_id']) || $isGuest;
 </div>
 
 <script>
-let allCards = [], stage1 = [], stage2 = [], stage3 = [], sessionQueue = [];
+let allCards = [], stage1 = [], stage2 = [], stage3 = [], recentShown = [];
 let currentCard = null, csvFilename = "", direction = "begriff";
 
 function shuffle(a) {
@@ -357,7 +357,7 @@ function parseCSV(text, csvFile) {
         const n = idCounts.get(baseId) || 0;
         idCounts.set(baseId, n + 1);
         const id = n === 0 ? baseId : (baseId + '_' + n);
-        cards.push({ id, cat, term, def, src: fields[3] || '' });
+        cards.push({ id, cat, term, def, src: fields[3] || '', wrongCount: 0 });
     }
 
     if (errors.length > 0) {
@@ -381,7 +381,9 @@ function reconcileProgress(saved) {
         for (const oldCard of (savedStage || [])) {
             const fresh = byId.get(oldCard && oldCard.id);
             if (fresh) {
-                result.push(fresh);
+                // wrongCount aus dem gespeicherten Fortschritt übernehmen, sonst
+                // würde die Gewichtung in pickNextCard() nach jedem Neuladen verloren gehen.
+                result.push({ ...fresh, wrongCount: (oldCard && oldCard.wrongCount) || 0 });
                 known.add(fresh.id);
             }
         }
@@ -391,7 +393,7 @@ function reconcileProgress(saved) {
     stage1 = rebuild(saved.stage1);
     stage2 = rebuild(saved.stage2);
     stage3 = rebuild(saved.stage3);
-    sessionQueue = [];
+    recentShown = [];
 
     const neueKarten = allCards.filter(c => !known.has(c.id));
     stage1.push(...shuffle(neueKarten));
@@ -435,7 +437,7 @@ function performFullReset(doSave = true) {
     stage1 = shuffle(allCards.map(c => ({...c})));
     stage2 = [];
     stage3 = [];
-    sessionQueue = [];
+    recentShown = [];
     if(doSave) saveProgress().then(startLearning);
     else startLearning();
 }
@@ -446,21 +448,48 @@ function startLearning() {
     pickNextCard();
 }
 
+// Wählt die nächste Karte gewichtet aus Stufe 1+2 statt aus einem stumpf
+// gemischten Stapel: Stufe-1-Karten (noch nicht einmal richtig) sind doppelt
+// so wahrscheinlich wie Stufe-2-Karten, und jeder Fehlversuch erhöht das
+// Gewicht zusätzlich - schwierige Karten kommen so gezielt öfter dran.
+// Ein Cooldown-Fenster (recentShown) schließt zuletzt gezeigte Karten kurz
+// aus, damit ein rein zufälliger Treffer nicht sofort wiederholt wird oder
+// sich Karten aus derselben Kategorie sichtbar häufen - genau das wirkt bei
+// echtem Gleichverteilungs-Zufall oft "unzufällig", obwohl es korrekt ist.
 function pickNextCard() {
-    // Wenn die Warteschlange leer ist, fülle sie mit Stufe 1 und 2 neu
-    if (sessionQueue.length === 0) {
-        sessionQueue = shuffle([...stage1, ...stage2]);
-    }
+    const entries = [
+        ...stage1.map(c => ({ card: c, weight: 2 * (1 + (c.wrongCount || 0)) })),
+        ...stage2.map(c => ({ card: c, weight: 1 * (1 + (c.wrongCount || 0)) })),
+    ];
 
-    if (sessionQueue.length === 0) {
+    if (entries.length === 0) {
         // Falls wirklich gar nichts mehr da ist -> Fertig!
         document.getElementById("card-area").innerHTML = "<h2>🎉 Alles gelernt!</h2><button onclick='location.reload()'>Zum Hauptmenü</button>";
         return;
     }
 
-    // Nimm die nächste Karte aus der Warteschlange
-    currentCard = sessionQueue.pop();
-    
+    const cooldownSize = Math.min(recentShown.length, Math.max(0, entries.length - 1));
+    const recentIds = new Set(recentShown.slice(-cooldownSize));
+    let candidates = entries.filter(e => !recentIds.has(e.card.id));
+    if (candidates.length === 0) candidates = entries;
+
+    const total = candidates.reduce((sum, e) => sum + e.weight, 0);
+    let r = Math.random() * total;
+    let chosen = candidates[candidates.length - 1];
+    for (const e of candidates) {
+        r -= e.weight;
+        if (r <= 0) { chosen = e; break; }
+    }
+    currentCard = chosen.card;
+
+    recentShown.push(currentCard.id);
+    // Bewusst klein und von der Deckgröße (fast) unabhängig: Ein Cooldown von
+    // der halben Stapelgröße würde bei großen Decks die Gewichtung (wrongCount)
+    // dominieren und effektiv aushebeln, da er selbst zur Obergrenze für die
+    // Wiederholungsrate wird, bevor das Gewicht überhaupt greifen kann.
+    const maxCooldown = Math.min(15, Math.max(1, Math.floor(entries.length / 5)));
+    while (recentShown.length > maxCooldown) recentShown.shift();
+
     // UI Update
     document.getElementById("meta").textContent = currentCard.cat;
     document.getElementById("term").textContent = (direction === "begriff") ? currentCard.term : currentCard.def;
@@ -502,13 +531,15 @@ document.getElementById("rightBtn").addEventListener("click", () => {
 
 document.getElementById("wrongBtn").addEventListener("click", () => {
     const id = currentCard.id;
+    currentCard.wrongCount = (currentCard.wrongCount || 0) + 1;
     // Wenn in Stufe 2, zurück zu Stufe 1
     if (stage2.some(c => c.id === id)) {
         stage2 = stage2.filter(c => c.id !== id);
         stage1.push(currentCard);
     }
-    // Hinweis: Karte bleibt für diese Session aus der sessionQueue draußen,
-    // kommt aber im nächsten Durchgang (wenn Queue leer) wieder in Stufe 1 dran.
+    // Die Karte bleibt kurzzeitig durchs Cooldown-Fenster (recentShown) von der
+    // Auswahl ausgeschlossen, hat aber wegen des erhöhten wrongCount ab jetzt
+    // ein höheres Gewicht und kommt dadurch tendenziell schneller wieder dran.
     pickNextCard();
     saveProgress().catch(err => console.error("Fortschritt konnte nicht gespeichert werden:", err));
 });
