@@ -87,6 +87,38 @@ $debugMode = true;             // true = PHP-Fehler sichtbar (im Live-Betrieb au
     </div>
 
     <div class="card-panel">
+        <h2>Admin-User hinzufügen</h2>
+        <p>Admin-Rechte hängen <strong>nicht</strong> an der E-Mail-Adresse, sondern an der
+        Google-Sub-ID (einer stabilen, anonymen Kennung aus dem Google-Login-Token). Die
+        E-Mail-Adresse taucht im Code nirgends auf – ein neuer Google-Account (auch eine
+        andere Adresse derselben Person) braucht daher immer erst seine eigene Sub-ID, bevor
+        er eingetragen werden kann.</p>
+        <p>Vorgehen:</p>
+        <ol>
+            <li>Die Person meldet sich einmal ganz normal über den Google-Login-Button in
+                <code>kartei.php</code> an und beantwortet mindestens eine Karteikarte (damit
+                ein Lernstand gespeichert wird).</li>
+            <li>Im Admin-Bereich unter <strong>„Fortschritts-Verwaltung“</strong> erscheint danach
+                eine neue Zeile mit einer bisher unbekannten User-ID – das ist die gesuchte
+                Sub-ID. Bei mehreren gleichzeitig aktiven Nutzern hilft ein Vorher/Nachher-Vergleich
+                der Tabelle bzw. der Zeitstempel der Dateien in <code>storage/</code>
+                (<code>prog_&lt;sub-id&gt;_&lt;csv-hash&gt;.json</code>).</li>
+            <li>Diese Sub-ID in <code>config.php</code> zum Array <code>$authorizedUsers</code>
+                ergänzen:
+<pre>$authorizedUsers = [
+    "115838474626364014898",   #acpos7
+    "105920009078675839078",   #achripos (gmail)
+    "NEUE_SUB_ID_HIER"         #kurzer Kommentar zur Zuordnung
+];</pre>
+            </li>
+            <li>Datei wie gewohnt direkt auf dem Server speichern – danach sieht die Person
+                sofort (spätestens beim nächsten Login) den Admin-Link.</li>
+        </ol>
+        <div class="hinweis">Ohne einen ersten Login gibt es keine Sub-ID und damit auch keine
+        Zeile in der Fortschritts-Verwaltung – der erste Schritt lässt sich nicht überspringen.</div>
+    </div>
+
+    <div class="card-panel">
         <h2>Admin-Möglichkeiten (<code>admin.php</code>)</h2>
 
         <h3>CSV Upload</h3>
