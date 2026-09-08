@@ -1,6 +1,6 @@
 # AGENTS.md
 
-> **Herkunft:** erstellt von Claude Code (Sonnet 5), 2026-07-31 · gepflegt von Claude Code (Stand: 21.08.2026)
+> **Herkunft:** erstellt von Claude Code (Sonnet 5), 2026-07-31 · gepflegt von Claude Code (Stand: 08.09.2026)
 > **Einbindung:** Claude Code lädt diese Datei nicht selbst — `CLAUDE.md` zieht sie per `@AGENTS.md` nach.
 > Regeln immer hier pflegen, nie in der `CLAUDE.md`.
 
@@ -29,6 +29,26 @@ old-latein/, ITIL/    Archiv/themenfremd — von glob("*.csv") nicht erfasst, ab
 storage/prog_*.json   Lernfortschritt pro User+CSV (Dateiname-Hash im Namen, siehe unten).
 convert_excel_vokabeln.py  Konfigurierbarer Excel→CSV-Importer, KONFIGURATION-Block am Anfang anpassen.
 ```
+
+## Teil-Auszüge einzelner Kapitel
+
+Neben den beiden Schuljahres-Dateien kann eine **Teilmenge einzelner Kapitel** als eigene
+CSV im Root liegen (Beispiel: `latein_Gym4_Kap15-17.csv`, Kapitel 15–17 aus
+`latein_Gym4.csv`). Sie erscheint durch `glob("*.csv")` automatisch im Dropdown.
+
+Erzeugt wird sie aus derselben Excel-Quelle wie die Vollversionen, mit der Logik aus
+`convert_excel_vokabeln.py` (`kapitel_aus_lektion()`, `build_begriff()`, `BUCH_QUELLE`) —
+der KONFIGURATION-Block dort bleibt unverändert auf dem 14er-Split für die beiden
+Schuljahres-Dateien, der Auszug wird über ein separates Filterskript gezogen. So bleiben
+Format, Wortart-Klammern und Quellenangabe identisch zur Vollversion; Gegenprobe ist die
+Zeilenzahl (`grep -c '^"Kapitel 1[567]"' latein_Gym4.csv` muss zum Auszug passen).
+
+**Der Lernfortschritt eines Auszugs ist unabhängig von dem der Vollversion.** Der
+Speichername ist `prog_<user>_<md5(csv-dateiname)>.json` (`kartei.php`) — ein anderer
+Dateiname ist damit ein anderer Lernstand, obwohl es dieselben Vokabeln sind. Wer in
+`latein_Gym4_Kap15-17.csv` übt, bewegt in `latein_Gym4.csv` keine Karte. Das ist gewollt
+(fokussiertes Üben vor einer Schularbeit), muss aber beim Anlegen weiterer Auszüge
+mitbedacht werden: Jeder neue Auszug beginnt bei Fach 1.
 
 ## Code Style
 
@@ -71,3 +91,14 @@ convert_excel_vokabeln.py  Konfigurierbarer Excel→CSV-Importer, KONFIGURATION-
 - `config.php` committen (enthält Google Client-ID + Admin-Sub-IDs) — nur `config.php.example` pflegen.
 - Verlagsmaterial (`*.xlsx` o. ä. Lehrbuch-Quellen) committen — Original bleibt lokal, per `.gitignore`.
 - Storage-Dateien (`storage/*.json`, echte Lernstände) committen.
+
+## Offene Punkte
+
+- **Auszüge werden von Hand gezogen.** `convert_excel_vokabeln.py` kann bisher nur den
+  festen 14er-Split; ein Kapitelbereich als Parameter (`--kapitel 15-17 --out <datei>`)
+  wäre der nächste sinnvolle Schritt, ist aber bewusst noch nicht gebaut — bislang gibt es
+  genau einen Auszug.
+- **`latein_Gym3_1by1.csv`** liegt unverändert im Root und ist damit im Dropdown, ohne dass
+  dokumentiert wäre, wie es sich von `latein_Gym3.csv` unterscheidet (467 statt 422
+  Zeilen). Vor dem Aufräumen mit dem User klären — aktiv genutzte CSVs werden nicht
+  ungefragt entfernt.
