@@ -1,5 +1,9 @@
 # AGENTS.md
 
+> **Herkunft:** erstellt von Claude Code (Sonnet 5), 2026-07-31 · gepflegt von Claude Code (Stand: 21.08.2026)
+> **Einbindung:** Claude Code lädt diese Datei nicht selbst — `CLAUDE.md` zieht sie per `@AGENTS.md` nach.
+> Regeln immer hier pflegen, nie in der `CLAUDE.md`.
+
 PHP-Vokabeltrainer ("Lernkartei"), vanilla PHP + JS, kein Framework, kein Build-Schritt.
 Ausführliche Doku: `DOKU.md` (Architektur, Sicherheit) und `admin-doku.php` (HTML-Variante, live verlinkt).
 
