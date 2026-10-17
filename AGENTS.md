@@ -7,6 +7,8 @@
 PHP-Vokabeltrainer ("Lernkartei"), vanilla PHP + JS, kein Framework, kein Build-Schritt.
 Ausführliche Doku: `DOKU.md` (Architektur, Sicherheit) und `admin-doku.php` (HTML-Variante, live verlinkt).
 
+Themen: [go](~/KI-Projekte/themen/go.md), [web](~/KI-Projekte/themen/web.md) — Querschnittswissen, vor Arbeit am Thema lesen
+
 ## Stack & Commands
 
 - **PHP 8.2**, kein Composer/Framework. **Kein lokaler PHP-Interpreter** — Syntax-Checks laufen
