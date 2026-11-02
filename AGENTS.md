@@ -1,6 +1,6 @@
 # AGENTS.md
 
-> **Herkunft:** erstellt von Claude Code (Sonnet 5), 2026-07-31 · gepflegt von Claude Code (Stand: 08.09.2026)
+> **Herkunft:** erstellt von Claude Code (Sonnet 5), 2026-07-31 · gepflegt von Claude Code (Stand: 02.11.2026)
 > **Einbindung:** Claude Code lädt diese Datei nicht selbst — `CLAUDE.md` zieht sie per `@AGENTS.md` nach.
 > Regeln immer hier pflegen, nie in der `CLAUDE.md`.
 
@@ -35,8 +35,8 @@ convert_excel_vokabeln.py  Konfigurierbarer Excel→CSV-Importer, KONFIGURATION-
 ## Teil-Auszüge einzelner Kapitel
 
 Neben den beiden Schuljahres-Dateien kann eine **Teilmenge einzelner Kapitel** als eigene
-CSV im Root liegen (Beispiel: `latein_Gym4_Kap15-17.csv`, Kapitel 15–17 aus
-`latein_Gym4.csv`). Sie erscheint durch `glob("*.csv")` automatisch im Dropdown.
+CSV im Root liegen (derzeit `latein_Gym4_Kap15-17.csv` und `latein_Gym4_Kap18.csv`,
+beide aus `latein_Gym4.csv`). Sie erscheint durch `glob("*.csv")` automatisch im Dropdown.
 
 Erzeugt wird sie aus derselben Excel-Quelle wie die Vollversionen, mit der Logik aus
 `convert_excel_vokabeln.py` (`kapitel_aus_lektion()`, `build_begriff()`, `BUCH_QUELLE`) —
@@ -98,8 +98,8 @@ mitbedacht werden: Jeder neue Auszug beginnt bei Fach 1.
 
 - **Auszüge werden von Hand gezogen.** `convert_excel_vokabeln.py` kann bisher nur den
   festen 14er-Split; ein Kapitelbereich als Parameter (`--kapitel 15-17 --out <datei>`)
-  wäre der nächste sinnvolle Schritt, ist aber bewusst noch nicht gebaut — bislang gibt es
-  genau einen Auszug.
+  wäre der nächste sinnvolle Schritt. Seit 02.11.2026 gibt es zwei Auszüge (Kapitel 15–17
+  und 18) — spätestens beim dritten lohnt sich der Parameter.
 - **`latein_Gym3_1by1.csv`** liegt unverändert im Root und ist damit im Dropdown, ohne dass
   dokumentiert wäre, wie es sich von `latein_Gym3.csv` unterscheidet (467 statt 422
   Zeilen). Vor dem Aufräumen mit dem User klären — aktiv genutzte CSVs werden nicht
