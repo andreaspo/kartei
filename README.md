@@ -4,7 +4,7 @@
 > **Typ:** Eigenständiges Git-Repository (Branch `main`, Remote: `github.com/andreaspo/kartei`)  
 > **Erstellt & gepflegt von:** Claude Code / Antigravity  
 > **Live-URL:** [https://go.p5k.eu/kartei/](https://go.p5k.eu/kartei/)  
-> **Stand:** 08.09.2026 · erstellt mit Claude Code GUI (Opus 5)
+> **Stand:** 02.11.2026 · erstellt mit Claude Code GUI (Opus 5.5)
 
 ---
 
@@ -18,6 +18,7 @@ Leichtgewichtiger, extrem schneller Spaced-Repetition Vokabel- und Begriffstrain
 - **Lehrstoff-Sammlungen:**
   - Latein Gymnasium 3. & 4. Klasse (`latein_Gym3.csv`, `latein_Gym4.csv`).
   - Auszug Kapitel 15–17 der 4. Klasse als eigene Sammlung (`latein_Gym4_Kap15-17.csv`).
+  - Auszug Kapitel 18 der 4. Klasse als eigene Sammlung (`latein_Gym4_Kap18.csv`).
   - ITIL 4 Foundation & Monitoring (`ITIL/`).
 - **Administrationsbereich (`admin.php`):**
   - CSV-Upload, Vokabel-Zusammenführung, Verwaltung von Lernständen, integrierte HTML-Dokumentation (`admin-doku.php`).
@@ -41,6 +42,7 @@ kartei/
 ├── latein_Gym3.csv       # Aktive Vokabeldateien (automatisch im Dropdown)
 ├── latein_Gym4.csv
 ├── latein_Gym4_Kap15-17.csv # Auszug Kapitel 15–17 aus latein_Gym4.csv
+├── latein_Gym4_Kap18.csv # Auszug Kapitel 18
 ├── ITIL/                 # ITIL-Fragenkataloge
 ├── old-latein/           # Archivierte Vokabel-Rohdaten
 └── storage/              # JSON-Lernstände pro Nutzer (gehasht)
